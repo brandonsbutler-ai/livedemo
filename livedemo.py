@@ -160,8 +160,14 @@ class Page:
     def screen(self, document, label="", height=620, add=True):
         """Embed a complete HTML document, live, in an isolated frame.
 
-        `document` is a path or the markup itself. The frame is sandboxed and
-        same-origin only, so the embedded page cannot navigate the host.
+        `document` is a path or the markup itself.
+
+        The frame is sandboxed with scripts ALLOWED and same-origin withheld,
+        which is the combination that makes an embedded interface a demo rather
+        than a screenshot: the page runs its own code, but sits in an opaque
+        origin, so it cannot read the host document, its storage or its cookies.
+        Withholding `allow-scripts` instead would leave every control dead while
+        the surrounding prose told the reader to click them.
         """
         markup = document
         if isinstance(document, str) and os.path.isfile(document):
@@ -179,7 +185,7 @@ class Page:
                  f'<span class="dot"></span>'
                  f'<span class="addr">{_e(label)}</span></div>'
                  f'<iframe loading="lazy" style="height:{int(height)}px" '
-                 f'sandbox="allow-same-origin" '
+                 f'sandbox="allow-scripts allow-downloads" '
                  f'srcdoc="{html.escape(markup, quote=True)}"></iframe></div>')
         if add:
             self._parts.append(block)

@@ -184,5 +184,44 @@ class TestBuilders(unittest.TestCase):
         self.assertIn("max-width:1280px", doc)      # collapses for laptops
 
 
+
+class SandboxTests(unittest.TestCase):
+    """The sandbox has to withhold the right things, not the easy things."""
+
+    def _frame(self):
+        page = Page("t")
+        return page.screen("<!doctype html><p onclick=\"x()\">hi</p>", add=False)
+
+    def test_scripts_run_inside_the_frame(self):
+        """An embedded interface whose scripts are blocked is a screenshot.
+
+        Withholding allow-scripts silently kills every control -- sorting,
+        editing, the hover map -- while the prose still says to click them.
+        """
+        self.assertIn("allow-scripts", self._frame())
+
+    def test_frame_cannot_reach_the_host(self):
+        """allow-scripts WITH allow-same-origin removes the sandbox entirely.
+
+        Together those two tokens let the framed page script the host document
+        and its storage. Scripts yes; same-origin no.
+        """
+        self.assertNotIn("allow-same-origin", self._frame())
+
+    def test_downloads_are_allowed(self):
+        """Several embedded tools export a file via createObjectURL.
+
+        A sandboxed frame silently drops the download without this token, so the
+        export button appears to do nothing at all.
+        """
+        self.assertIn("allow-downloads", self._frame())
+
+    def test_no_broader_tokens(self):
+        """Nothing here needs to navigate, popup, or run top-level scripts."""
+        frame = self._frame()
+        for token in ("allow-top-navigation", "allow-popups", "allow-forms",
+                      "allow-modals", "allow-pointer-lock", "allow-presentation"):
+            self.assertNotIn(token, frame)
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
